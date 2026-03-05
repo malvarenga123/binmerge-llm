@@ -1,3 +1,32 @@
+Here is the comprehensive changelog detailing all the improvements, bug fixes, and architectural changes made between the original version 1.0.3 and the final version 1.1.0-LLM
+
+### 🚀 Major Features & Enhancements
+
+ * **Full CD-TEXT & Metadata Preservation:** Completely overhauled the parser to capture and retain all CUE metadata (`TITLE`, `PERFORMER`, `SONGWRITER`, `REM`, `ISRC`, `FLAGS`, `CATALOG`, `CDTEXTFILE`). Metadata is safely preserved at both the global (disc) and track levels.
+ * **Command-Line Interface Redesign:** Replaced the confusing `--split` boolean flag with explicit `argparse` subparsers (`binmerge merge ...` and `binmerge split ...`).
+ * **Interactive Progress Bar:** Added a native, zero-dependency progress bar that displays real-time MB/s, percentage, and a visual hash bar during large file operations.
+ * **Dry-Run Mode (`-n`, `--dry-run`):** Added a simulation mode that calculates track offsets, checks file sizes, and prints the proposed CUE sheet to the console without writing any data to the disk.
+ * **Force Overwrite (`-f`, `--force`):** Added a flag to bypass the safety checks and explicitly overwrite existing `.bin` and `.cue` files on the disk.
+
+### 🐛 Bug Fixes
+
+ * **Float Division Bug (Python 3):** Fixed an issue where time calculations used standard division (`/`) resulting in floating-point outputs (e.g., `1.0:02.0:00`), which corrupted generated CUE sheets. Replaced with strict floor division (`//`).
+ * **Infinite Loop Vulnerability:** Fixed a critical bug in `split_files` where a truncated or corrupted source binary would cause the script to hang indefinitely in a `while True` loop maxing out the CPU.
+ * **Hidden Pregap Calculation:** Fixed an off-by-one/misalignment error in single-file sector calculation. The script now correctly anchors track lengths to the earliest index (handling `INDEX 00` pregaps correctly rather than appending them to the previous track).
+ * **Quoted Filename Parsing:** Replaced naive string matching with `shlex.split()`, ensuring the script correctly handles long filenames with multiple spaces, parentheses, and quoted inner strings without crashing.
+
+### 🏗️ Architecture & Modernization
+
+ * **Strict Line Ordering:** Implemented a new generic `CueLine` and `IndexLine` storage system. The script no longer shuffles metadata; it guarantees that any obscure commands (like `TOC_INFO`) are written back in the exact order they were read.
+ * **Context-Aware Quoting:** Built an intelligent quoting system that forces double-quotes around text fields (like `TITLE` and `PERFORMER`) while leaving numeric/enum fields (like `ISRC` or `FLAGS`) raw, adhering strictly to CUE format specifications.
+ * **Pathlib Migration:** Replaced all legacy `os.path` calls with Python's modern `pathlib` for much safer and robust cross-platform path handling.
+ * **Shared State Hazard Removed:** Removed the `Track.globalBlocksize` class variable, moving it to instance data on the `CueSheet` object to safely isolate state per run.
+ * **Type Hinting:** Added comprehensive PEP 484 type hints (`List`, `Optional`, `Union`, etc.) across all classes and functions to aid future maintainability and IDE support.
+ * **Safer Exception Handling:** Added bounds checking (`if len(tokens) < 3`) to prevent `IndexError` on malformed CUE lines, and eliminated a TOCTOU (Time-Of-Check to Time-Of-Use) race condition when sizing files by explicitly trapping `FileNotFoundError`.
+ * **Standardized Exit Codes:** Replaced simple `return False` statements in the main runner with proper `sys.exit(1)` propagation to ensure the script interacts correctly with CI/CD pipelines and batch scripts.
+------------------------------------------------------------------------
+Original readme
+------------------------------------------------------------------------
 # binmerge
 
 Source code available at: https://github.com/putnam/binmerge
